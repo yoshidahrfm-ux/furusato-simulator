@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ふるさと納税 上限額シミュレーター</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f4f0;
+    --surface: #ffffff;
+    --border: #e0ddd6;
+    --text: #1a1a18;
+    --text-sub: #6b6860;
+    --text-hint: #a09e99;
+    --accent: #1a5c3a;
+    --accent-light: #e8f3ed;
+    --accent-text: #0f3d27;
+    --warn: #c0392b;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  header {
+    background: var(--accent);
+    color: #fff;
+    padding: 20px 20px 18px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  header h1 {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: .04em;
+  }
+
+  header p {
+    font-size: 12px;
+    opacity: .75;
+    margin-top: 3px;
+  }
+
+  .container {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 16px 16px 48px;
+  }
+
+  /* ===== 結果カード（上部固定） ===== */
+  .result-banner {
+    background: var(--accent);
+    color: #fff;
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .result-main {
+    text-align: center;
+  }
+
+  .result-label {
+    font-size: 12px;
+    opacity: .8;
+    letter-spacing: .06em;
+    margin-bottom: 4px;
+  }
+
+  .result-value {
+    font-size: 44px;
+    font-weight: 700;
+    letter-spacing: -.02em;
+    line-height: 1;
+  }
+
+  .result-value span {
+    font-size: 18px;
+    font-weight: 400;
+    margin-left: 4px;
+    opacity: .85;
+  }
+
+  .result-note {
+    font-size: 11px;
+    opacity: .7;
+    text-align: center;
+    margin-top: 4px;
+  }
+
+  .result-sub-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .result-sub {
+    background: rgba(255,255,255,.12);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    text-align: center;
+  }
+
+  .result-sub .s-label {
+    font-size: 11px;
+    opacity: .75;
+    margin-bottom: 2px;
+  }
+
+  .result-sub .s-value {
+    font-size: 17px;
+    font-weight: 700;
+  }
+
+  /* ===== セクション ===== */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 14px;
+  }
+
+  .card-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: .05em;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ===== フォーム ===== */
+  .field {
+    margin-bottom: 14px;
+  }
+
+  .field:last-child { margin-bottom: 0; }
+
+  .field label {
+    display: block;
+    font-size: 13px;
+    color: var(--text-sub);
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+
+  .field input[type="number"],
+  .field select {
+    width: 100%;
+    height: 46px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0 12px;
+    font-size: 16px; /* iOSズーム防止 */
+    font-family: inherit;
+    color: var(--text);
+    background: var(--bg);
+    appearance: none;
+    -webkit-appearance: none;
+    outline: none;
+    transition: border-color .15s;
+  }
+
+  .field input[type="number"]:focus,
+  .field select:focus {
+    border-color: var(--accent);
+    background: #fff;
+  }
+
+  .field-hint {
+    font-size: 11px;
+    color: var(--text-hint);
+    margin-top: 4px;
+  }
+
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .field-row .field { margin-bottom: 0; }
+
+  .select-wrap {
+    position: relative;
+  }
+
+  .select-wrap::after {
+    content: '▾';
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px;
+    color: var(--text-hint);
+    pointer-events: none;
+  }
+
+  /* チェックボックス行 */
+  .check-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .check-row input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+    flex-shrink: 0;
+  }
+
+  .check-row label {
+    font-size: 13px;
+    color: var(--text-sub);
+    cursor: pointer;
+  }
+
+  /* 医療費控除のサブ入力 */
+  .sub-field {
+    margin-top: 10px;
+    display: none;
+  }
+
+  .sub-field.active { display: block; }
+
+  /* ===== 内訳テーブル ===== */
+  .breakdown-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .breakdown-table tr {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .breakdown-table tr:last-child {
+    border-bottom: none;
+    font-weight: 700;
+    font-size: 14px;
+  }
+
+  .breakdown-table td {
+    padding: 9px 4px;
+  }
+
+  .breakdown-table td:last-child {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .desc-cell { color: var(--text-sub); }
+
+  /* ===== 注記 ===== */
+  .notice {
+    background: var(--accent-light);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    font-size: 12px;
+    color: var(--accent-text);
+    line-height: 1.7;
+    margin-top: 14px;
+  }
+
+  .notice strong { font-weight: 700; }
+
+  /* ===== レスポンシブ ===== */
+  @media (max-width: 400px) {
+    .result-value { font-size: 36px; }
+    .field-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>ふるさと納税 上限額シミュレーター</h1>
+  <p>アイライフ税理士法人</p>
+</header>
+
+<div class="container">
+
+  <!-- 結果バナー -->
+  <div class="result-banner">
+    <div class="result-main">
+      <div class="result-label">寄附の目安上限額</div>
+      <div class="result-value" id="r-limit">―<span>円</span></div>
+      <div class="result-note">自己負担 2,000円 を除く実質無料枠</div>
+    </div>
+    <div class="result-sub-grid">
+      <div class="result-sub">
+        <div class="s-label">給与所得</div>
+        <div class="s-value" id="r-income">―</div>
+      </div>
+      <div class="result-sub">
+        <div class="s-label">所得税の限界税率</div>
+        <div class="s-value" id="r-rate">―</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 収入 -->
+  <div class="card">
+    <div class="card-title">収入</div>
+    <div class="field">
+      <label>給与収入（年収）</label>
+      <input type="number" id="income" value="5000000" min="0" step="10000" inputmode="numeric">
+      <div class="field-hint">源泉徴収票の「支払金額」欄の金額</div>
+    </div>
+  </div>
+
+  <!-- 家族構成 -->
+  <div class="card">
+    <div class="card-title">家族構成・扶養</div>
+    <div class="field">
+      <label>配偶者</label>
+      <div class="select-wrap">
+        <select id="spouse">
+          <option value="0">なし</option>
+          <option value="1">あり・専業主婦（夫）等（配偶者控除対象）</option>
+          <option value="2">あり・共働き（配偶者控除なし）</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>扶養親族（16歳以上）</label>
+        <div class="select-wrap">
+          <select id="dep">
+            <option value="0">0人</option>
+            <option value="1">1人</option>
+            <option value="2">2人</option>
+            <option value="3">3人</option>
+            <option value="4">4人</option>
+            <option value="5">5人</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>扶養親族（16歳未満）</label>
+        <div class="select-wrap">
+          <select id="depU16">
+            <option value="0">0人</option>
+            <option value="1">1人</option>
+            <option value="2">2人</option>
+            <option value="3">3人</option>
+          </select>
+        </div>
+        <div class="field-hint">住民税の非課税判定のみ影響</div>
+      </div>
+    </div>
+    <div class="field">
+      <label>特別障害者（同居）</label>
+      <div class="select-wrap">
+        <select id="disabled">
+          <option value="0">なし</option>
+          <option value="1">1人</option>
+          <option value="2">2人</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- 控除 -->
+  <div class="card">
+    <div class="card-title">各種控除</div>
+    <div class="field">
+      <label>住宅ローン控除（税額控除額）</label>
+      <input type="number" id="housingDeduct" value="0" min="0" step="1000" inputmode="numeric">
+      <div class="field-hint">所得税から差し引く金額（年末調整後の源泉徴収票で確認）</div>
+    </div>
+    <div class="check-row">
+      <input type="checkbox" id="medCheck">
+      <label for="medCheck">医療費控除・その他特別控除がある</label>
+    </div>
+    <div class="sub-field" id="medSub">
+      <div class="field">
+        <label>控除額（概算）</label>
+        <input type="number" id="medicalAmt" value="0" min="0" step="10000" inputmode="numeric">
+        <div class="field-hint">医療費控除は（実医療費 − 10万円）が目安</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 内訳 -->
+  <div class="card">
+    <div class="card-title">計算内訳</div>
+    <table class="breakdown-table" id="breakdown"></table>
+  </div>
+
+  <!-- 注記 -->
+  <div class="notice">
+    <strong>ご注意：</strong>このシミュレーターは目安額の算出を目的としています。ワンストップ特例または確定申告により自己負担2,000円を超えた分が全額控除される前提で計算しており、復興特別所得税（2.1%）を含みます。実際の限度額は個人の詳細な税務状況によって異なります。詳しくは担当スタッフにご相談ください。
+  </div>
+
+</div>
+
+<script>
+// ===== 計算関数 =====
+
+function incomeDeduction(income) {
+  if (income <= 1625000) return 550000;
+  if (income <= 1800000) return Math.floor(income * 0.4) - 100000;
+  if (income <= 3600000) return Math.floor(income * 0.3) + 80000;
+  if (income <= 6600000) return Math.floor(income * 0.2) + 440000;
+  if (income <= 8500000) return Math.floor(income * 0.1) + 1100000;
+  return 1950000;
+}
+
+function incomeTax(taxable) {
+  if (taxable <= 0) return 0;
+  if (taxable <= 1949000) return taxable * 0.05;
+  if (taxable <= 3299000) return taxable * 0.1 - 97500;
+  if (taxable <= 6949000) return taxable * 0.2 - 427500;
+  if (taxable <= 8999000) return taxable * 0.23 - 636000;
+  if (taxable <= 17999000) return taxable * 0.33 - 1536000;
+  if (taxable <= 39999000) return taxable * 0.4 - 2796000;
+  return taxable * 0.45 - 4796000;
+}
+
+function marginalRate(taxable) {
+  if (taxable <= 1949000) return 0.05;
+  if (taxable <= 3299000) return 0.10;
+  if (taxable <= 6949000) return 0.20;
+  if (taxable <= 8999000) return 0.23;
+  if (taxable <= 17999000) return 0.33;
+  if (taxable <= 39999000) return 0.40;
+  return 0.45;
+}
+
+function personalDeduction(spouseVal, depVal, disabledVal) {
+  let d = 480000;
+  if (spouseVal === '1') d += 380000;
+  d += parseInt(depVal) * 380000;
+  d += parseInt(disabledVal) * 750000;
+  return d;
+}
+
+function fmt(n) {
+  return Math.round(n).toLocaleString('ja-JP') + ' 円';
+}
+
+// ===== メイン計算 =====
+
+function calc() {
+  const income        = parseFloat(document.getElementById('income').value) || 0;
+  const spouseVal     = document.getElementById('spouse').value;
+  const depVal        = document.getElementById('dep').value;
+  const depU16Val     = parseInt(document.getElementById('depU16').value);
+  const disabledVal   = document.getElementById('disabled').value;
+  const housingDeduct = parseFloat(document.getElementById('housingDeduct').value) || 0;
+  const medChecked    = document.getElementById('medCheck').checked;
+  const medAmt        = medChecked ? (parseFloat(document.getElementById('medicalAmt').value) || 0) : 0;
+
+  // 所得計算
+  const incDeduct   = incomeDeduction(income);
+  const salary      = Math.max(0, income - incDeduct);
+  const persDeduct  = personalDeduction(spouseVal, depVal, disabledVal);
+  const taxableInc  = Math.max(0, salary - persDeduct - medAmt);
+
+  // 所得税
+  const mRate       = marginalRate(taxableInc);
+  const fukko       = 1.021; // 復興特別所得税
+  const effRate     = mRate * fukko;
+  const itax        = Math.max(0, incomeTax(taxableInc) * fukko - housingDeduct);
+
+  // 住民税課税所得（基礎控除43万円）
+  const localBase   = Math.max(0, salary - persDeduct - medAmt - 430000);
+  const localRate   = 0.10;
+
+  // 上限額の逆算
+  const denom = 1 - effRate - localRate;
+  let limit = 0;
+  if (denom > 0 && income > 0) {
+    limit = (itax / mRate * effRate / fukko + localBase * localRate) / denom + 2000;
+    // ※ 簡易計算のため100円単位で丸め
+    limit = Math.round(limit / 100) * 100;
+  }
+  limit = Math.max(0, limit);
+
+  // ===== 画面更新 =====
+  document.getElementById('r-limit').innerHTML =
+    limit > 0 ? `${Math.round(limit).toLocaleString('ja-JP')}<span>円</span>` : `―<span>円</span>`;
+  document.getElementById('r-income').textContent =
+    salary > 0 ? `${Math.round(salary / 10000).toLocaleString('ja-JP')} 万円` : '―';
+  document.getElementById('r-rate').textContent =
+    income > 0 ? `${(mRate * 100).toFixed(0)}%（復興税込 ${(effRate * 100).toFixed(1)}%）` : '―';
+
+  // 内訳テーブル
+  const rows = [
+    ['給与収入', fmt(income)],
+    ['給与所得控除', `▲ ${fmt(incDeduct)}`],
+    ['給与所得', fmt(salary)],
+    ['所得控除合計（基礎・配偶者・扶養等）', `▲ ${fmt(persDeduct + medAmt)}`],
+    ['課税総所得（推定）', fmt(taxableInc)],
+    ['住民税課税所得（推定）', fmt(localBase)],
+    ['所得税の限界税率', `${(mRate * 100).toFixed(0)}%`],
+    ['住民税率', '10%'],
+    ['ふるさと納税 目安上限額', fmt(limit)],
+  ];
+
+  const tbody = rows.map(([d, v], i) => {
+    const last = i === rows.length - 1;
+    return `<tr${last ? ' style="color:var(--accent)"' : ''}>
+      <td class="desc-cell">${d}</td>
+      <td>${v}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('breakdown').innerHTML = tbody;
+}
+
+// ===== イベント =====
+
+document.querySelectorAll('input, select').forEach(el => el.addEventListener('input', calc));
+
+document.getElementById('medCheck').addEventListener('change', function() {
+  document.getElementById('medSub').classList.toggle('active', this.checked);
+});
+
+calc();
+</script>
+</body>
+</html>
